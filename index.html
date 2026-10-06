@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Запись на эфир</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-bg: #120503;
+    --card-bg: #1B0806;
+    --ink: #F4E6CE;
+    --body: #D8C3AC;
+    --muted: #A6897A;
+    --link: #E4B94A;
+    --btn-bg: #D4AF37;
+    --btn-bg-active: #B8912B;
+    --on-accent: #1B0806;
+    --answer-bg: #241009;
+    --answer-line: #4A241B;
+    --accent: #C9A227;
+    --accent-bg: #26100C;
+    --accent-line: #5C3620;
+    --error: #E58A7B;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--page-bg);
+    color: var(--body);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  body { min-height: 100vh; display: flex; justify-content: center; }
+  .app { width: 100%; max-width: 420px; min-height: 100vh; display: flex; flex-direction: column; }
+  .card {
+    background: var(--card-bg);
+    padding: 40px 24px 32px;
+    padding-top: calc(40px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    flex: 1;
+    display: flex; flex-direction: column;
+  }
+  .display { font-family: 'Cinzel', serif; letter-spacing: 0.01em; }
+
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 12px;
+  }
+  .title {
+    font-size: 25px; font-weight: 700; line-height: 1.3;
+    color: var(--ink); margin: 0 0 14px;
+  }
+  .lead { font-size: 16px; line-height: 1.55; color: var(--body); margin: 0 0 8px; }
+
+  .form-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--muted); margin: 22px 0 8px;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--answer-bg);
+    border: 1px solid var(--answer-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'Inter', sans-serif; font-size: 16px; color: var(--ink);
+  }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  .form-input::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .phone-row { display: flex; gap: 8px; }
+  .phone-row .form-input { flex: 1; min-width: 0; }
+  .tg-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 12px;
+    padding: 0 14px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  .tg-btn:active { background: var(--accent-bg); }
+  .tg-btn:disabled { opacity: 0.5; }
+  .hint { font-size: 12.5px; line-height: 1.45; color: var(--muted); margin: 8px 0 0; min-height: 18px; }
+
+  .checkbox-row { display: flex; align-items: flex-start; gap: 10px; margin: 16px 0 0; }
+  .checkbox-row input[type="checkbox"] {
+    margin-top: 3px; width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--btn-bg);
+  }
+  .checkbox-row label { font-size: 13px; line-height: 1.5; color: var(--body); }
+  .checkbox-row a { color: var(--link); text-decoration: none; }
+
+  .highlight-box {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-line);
+    border-radius: 14px;
+    padding: 18px 18px;
+    margin: 26px 0 22px;
+  }
+  .highlight-box p { margin: 0 0 10px; font-size: 15px; line-height: 1.55; color: var(--ink); }
+  .highlight-box p:last-child { margin-bottom: 0; }
+  .highlight-box a { color: var(--link); font-weight: 700; text-decoration: none; }
+
+  .error { font-size: 13.5px; line-height: 1.45; color: var(--error); margin: 0 0 12px; min-height: 0; }
+
+  .btn {
+    display: block; width: 100%; border: none; border-radius: 14px; padding: 17px 20px;
+    font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700;
+    cursor: pointer; text-align: center;
+    background: var(--btn-bg); color: var(--on-accent);
+  }
+  .btn:active { background: var(--btn-bg-active); transform: scale(0.98); }
+  .btn:disabled { opacity: 0.7; }
+
+  .spacer { flex: 1; }
+  #success-view { display: none; flex: 1; flex-direction: column; }
+  .success-title { font-size: 28px; font-weight: 700; line-height: 1.25; color: var(--ink); margin: 0 0 16px; }
+  .success-text { font-size: 16px; line-height: 1.6; color: var(--body); margin: 0 0 16px; }
+  .success-text a { color: var(--link); font-weight: 700; text-decoration: none; }
+
+  /* ---------- попап «вы записаны» ---------- */
+  .modal-overlay {
+    display: none;
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+    background: rgba(6, 2, 1, 0.85);
+    align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 9999;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-card {
+    width: 100%; max-width: 360px;
+    background: var(--card-bg);
+    border: 1px solid var(--accent-line);
+    border-radius: 18px;
+    padding: 30px 24px 24px;
+    text-align: center;
+  }
+  .modal-icon { font-size: 36px; margin-bottom: 10px; }
+  .modal-title { font-size: 22px; font-weight: 700; line-height: 1.3; color: var(--ink); margin: 0 0 10px; }
+  .modal-text { font-size: 15.5px; line-height: 1.55; color: var(--body); margin: 0 0 22px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="card">
+
+    <!-- ===== ФОРМА ===== -->
+    <div id="form-view">
+      <p class="eyebrow">Запись на эфир</p>
+      <h1 class="title display">Как раскрыть свои теневые стороны, чтобы получать деньги, проявленность и достойные отношения</h1>
+      <p class="lead">Оставляй заявку на запись</p>
+
+      <p class="form-label">Твой телеграм</p>
+      <input class="form-input" type="text" id="username" placeholder="@username" autocomplete="off" autocapitalize="off" spellcheck="false">
+
+      <p class="form-label">Твой номер телефона</p>
+      <div class="phone-row">
+        <input class="form-input" type="tel" id="phone" placeholder="+7 999 123 45 67" autocomplete="tel">
+        <button class="tg-btn" id="phone-btn" type="button" onclick="fillPhoneFromTelegram()">Из Telegram</button>
+      </div>
+      <p class="hint" id="phone-hint"></p>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="consent-data">
+        <label for="consent-data">Я даю <a href="https://docs.yandex.ru/view/d/pQM872qXegjG2BDJfm6lHCPegnqahzm72s0qoIz-cKg6aFk4T01WRGRfUQ" target="_blank" rel="noopener">согласие</a> на обработку моих персональных данных и ознакомлен(а) с <a href="https://docs.yandex.ru/view/d/pQM872qXegjG2BDJfm6lHCPegnqahzm72s0qoIz-cKg6Z2FYY0NsTm00Zw" target="_blank" rel="noopener">Политикой обработки персональных данных</a>.</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="consent-mail">
+        <label for="consent-mail">Я хочу получать письма и сообщения о программах и эфирах. Отписаться можно в один клик. <a href="https://docs.yandex.ru/view/d/pQM872qXegjG2BDJfm6lHCPegnqahzm72s0qoIz-cKg6Sm0xY0FOOTZ1dw" target="_blank" rel="noopener">Согласие на рекламную рассылку</a>.</label>
+      </div>
+
+      <div class="highlight-box">
+        <p>Моя команда добавит тебя в отдельный чат, в котором ты получишь запись эфира на 48 часов. Не пропусти сообщение.</p>
+        <p>Пишем только с: <a href="https://t.me/KristiUdincevaHelp1" target="_blank" rel="noopener">@KristiUdincevaHelp1</a> и <a href="https://t.me/KristiUdincevaHelp2" target="_blank" rel="noopener">@KristiUdincevaHelp2</a></p>
+      </div>
+
+      <p class="error" id="form-error"></p>
+      <button class="btn" id="submit-btn" type="button" onclick="onSubmit()">Записаться на эфир</button>
+    </div>
+
+    <!-- ===== ГОТОВО ===== -->
+    <div id="success-view">
+      <p class="eyebrow">Заявка принята</p>
+      <h2 class="success-title display">Готово. Ты в списке.</h2>
+      <p class="success-text">Моя команда добавит тебя в отдельный чат, в котором ты получишь запись эфира на 48 часов.</p>
+      <p class="success-text">Не пропусти сообщение. Пишем только с <a href="https://t.me/KristiUdincevaHelp1" target="_blank" rel="noopener">@KristiUdincevaHelp1</a> и <a href="https://t.me/KristiUdincevaHelp2" target="_blank" rel="noopener">@KristiUdincevaHelp2</a>.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== ПОПАП ===== -->
+<div class="modal-overlay" id="thanks-popup">
+  <div class="modal-card">
+    <div class="modal-icon">🎉</div>
+    <p class="modal-title display">Спасибо, вы записаны</p>
+    <p class="modal-text">Моя команда скоро с вами свяжется.</p>
+    <button class="btn" type="button" onclick="closePopup()">Хорошо</button>
+  </div>
+</div>
+
+<script>
+  // Вставь сюда URL веб-приложения из Google Apps Script (Deploy → Web app → URL)
+  var WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxpj32p9gAUfW_azcqaAu4N1j4jCDvxZIwGCuW7R8cBh-aKFWugFpYri1nABfYKsq9M4w/exec';
+
+  var tg = window.Telegram ? window.Telegram.WebApp : null;
+  var inTelegram = !!(tg && tg.initData);
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    try { tg.setHeaderColor('#120503'); tg.setBackgroundColor('#120503'); } catch (e) {}
+  }
+
+  var usernameEl = document.getElementById('username');
+  var phoneEl = document.getElementById('phone');
+  var phoneBtn = document.getElementById('phone-btn');
+  var phoneHint = document.getElementById('phone-hint');
+  var errorEl = document.getElementById('form-error');
+  var submitBtn = document.getElementById('submit-btn');
+  var phoneRequesting = false;
+
+  // Юзернейм подтягивается сам
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username) {
+    usernameEl.value = '@' + tg.initDataUnsafe.user.username;
+  }
+  // Вне Telegram кнопка «Из Telegram» бессмысленна
+  if (!inTelegram) { phoneBtn.style.display = 'none'; }
+
+  function haptic(style) {
+    if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.impactOccurred(style || 'light'); } catch (e) {} }
+  }
+  function showError(text) { errorEl.textContent = text || ''; }
+
+  function normalizePhone(raw) {
+    var digits = String(raw || '').replace(/[^\d]/g, '');
+    return digits ? '+' + digits : '';
+  }
+  function normalizeUsername(raw) {
+    var v = String(raw || '').trim().replace(/^@+/, '').replace(/\s+/g, '');
+    return /^[A-Za-z0-9_]{3,32}$/.test(v) ? '@' + v : '';
+  }
+
+  // Системное окно Telegram «Поделиться номером?». Молча взять номер нельзя,
+  // нужен один тап пользователя по «Поделиться».
+  function requestPhone(done) {
+    if (!inTelegram || !tg.requestContact) { done(false); return; }
+    if (phoneRequesting) { return; }
+    phoneRequesting = true;
+    phoneBtn.disabled = true;
+    try {
+      tg.requestContact(function (sent, ev) {
+        phoneRequesting = false;
+        phoneBtn.disabled = false;
+        var phone = '';
+        if (sent && ev && ev.responseUnsafe && ev.responseUnsafe.contact) {
+          phone = normalizePhone(ev.responseUnsafe.contact.phone_number);
+        }
+        if (phone) {
+          phoneEl.value = phone;
+          phoneHint.textContent = 'Номер подтянулся из Telegram.';
+        } else if (sent) {
+          phoneHint.textContent = 'Telegram не передал номер в форму. Впиши его вручную.';
+        } else {
+          phoneHint.textContent = 'Ты не поделился номером. Можно вписать его вручную.';
+        }
+        done(!!phone);
+      });
+    } catch (e) {
+      phoneRequesting = false;
+      phoneBtn.disabled = false;
+      phoneHint.textContent = 'Эта версия Telegram не умеет подтягивать номер. Впиши его вручную.';
+      done(false);
+    }
+  }
+
+  function fillPhoneFromTelegram() {
+    haptic('light');
+    showError('');
+    requestPhone(function () {});
+  }
+
+  function onSubmit() {
+    haptic('medium');
+    showError('');
+
+    if (!document.getElementById('consent-data').checked) {
+      showError('Поставь галочку согласия на обработку персональных данных.');
+      return;
+    }
+    var username = normalizeUsername(usernameEl.value);
+    if (!username) {
+      showError('Впиши свой юзернейм в телеграме, например @username.');
+      usernameEl.focus();
+      return;
+    }
+
+    var phone = normalizePhone(phoneEl.value);
+    var phoneOk = phone.replace(/\D/g, '').length >= 10 && phone.replace(/\D/g, '').length <= 15;
+
+    if (phoneOk) { send(username, phone); return; }
+
+    // Номера нет: пробуем подтянуть из Telegram прямо при отправке
+    submitBtn.disabled = true;
+    requestPhone(function (ok) {
+      submitBtn.disabled = false;
+      if (ok) {
+        send(username, normalizePhone(phoneEl.value));
+      } else {
+        showError('Нужен номер телефона. Впиши его вручную или нажми «Из Telegram».');
+        phoneEl.focus();
+      }
+    });
+  }
+
+  function send(username, phone) {
+    if (WEBHOOK_URL.indexOf('ВСТАВЬТЕ') === 0) {
+      showError('Не подключена таблица заявок. Вставь URL Apps Script в код.');
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Отправляем…';
+
+    // Ждём ответ не дольше 3.5 сек. Запрос при этом не отменяется и долетит в фоне.
+    var req = fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        username: username,
+        phone: phone,
+        consentMail: document.getElementById('consent-mail').checked
+      })
+    }).catch(function (err) { console.error('Заявка не отправилась:', err); });
+
+    var maxWait = new Promise(function (resolve) { setTimeout(resolve, 3500); });
+    Promise.race([req, maxWait]).then(showSuccess);
+  }
+
+  function showSuccess() {
+    document.getElementById('thanks-popup').classList.add('active');
+    if (tg && tg.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred('success'); } catch (e) {} }
+  }
+
+  function closePopup() {
+    haptic('light');
+    document.getElementById('thanks-popup').classList.remove('active');
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('success-view').style.display = 'flex';
+    window.scrollTo(0, 0);
+  }
+</script>
+
+</body>
+</html>
